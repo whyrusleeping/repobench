@@ -15,6 +15,7 @@ import (
 	chunk "github.com/ipfs/go-ipfs/importer/chunk"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	kingpin "github.com/alecthomas/kingpin"
 	humanize "github.com/dustin/go-humanize"
 	randbo "github.com/dustin/randbo"
 	context "golang.org/x/net/context"
@@ -38,6 +39,9 @@ func (bcfg *BenchCfg) String() string {
 }
 
 func main() {
+	bsize := kingpin.Flag("blocksize", "blocksize to test with").Default("262144").Int64()
+	kingpin.Parse()
+
 	home := os.Getenv("HOME")
 
 	ipfsdir := path.Join(home, ".ipfs")
@@ -60,7 +64,7 @@ func main() {
 	}
 
 	cfg := &BenchCfg{
-		Blocksize: 1024 * 256,
+		Blocksize: *bsize,
 	}
 
 	fmt.Println(cfg)
