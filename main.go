@@ -20,6 +20,15 @@ import (
 	context "golang.org/x/net/context"
 )
 
+var WriteSizes = []int64{
+	1024,
+	1024 * 256,
+	1024 * 512,
+	1024 * 1024,
+	1024 * 1024 * 2,
+	1024 * 1024 * 16,
+}
+
 type BenchCfg struct {
 	Blocksize int64
 }
@@ -31,7 +40,8 @@ func (bcfg *BenchCfg) String() string {
 func main() {
 	home := os.Getenv("HOME")
 
-	r, err := fsrepo.Open(path.Join(home, ".ipfs"))
+	ipfsdir := path.Join(home, ".ipfs")
+	r, err := fsrepo.Open(ipfsdir)
 	if err != nil {
 		fmt.Printf("Failed to open ipfs repo at: %s/.ipfs: %s\n", home, err)
 		fmt.Println("Please ensure ipfs has been initialized and that no daemon is running")
@@ -65,6 +75,11 @@ func main() {
 	}
 
 	err = BenchmarkAdd(nd, cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	err = BenchmarkDiskWrites(ipfsdir)
 	if err != nil {
 		panic(err)
 	}
@@ -138,15 +153,7 @@ func BenchmarkBlockRewrites(n *core.IpfsNode, cfg *BenchCfg) error {
 }
 
 func BenchmarkAdd(n *core.IpfsNode, cfg *BenchCfg) error {
-	sizes := []int64{
-		1024,
-		1024 * 256,
-		1024 * 512,
-		1024 * 1024,
-		1024 * 1024 * 2,
-		1024 * 1024 * 16,
-	}
-	for _, s := range sizes {
+	for _, s := range WriteSizes {
 		err := benchAddSize(n, cfg, s)
 		if err != nil {
 			return err
@@ -178,5 +185,55 @@ func benchAddSize(n *core.IpfsNode, cfg *BenchCfg, size int64) error {
 		return err
 	}
 
+	return nil
+}
+
+func BenchmarkDiskWrites(ipfsdir string) error {
+	for _, n := range WriteSizes {
+		err := benchDiskWriteSize(ipfsdir, n)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func benchDiskWriteSize(dir string, size int64) error {
+	benchdir := path.Join(dir, fmt.Sprintf("benchfiles-%d", size))
+	err := os.Mkdir(benchdir, 0777)
+	if err != nil {
+		return err
+	}
+
+	n := 0
+	f := func(b *testing.B) {
+		b.SetBytes(size)
+		r := randbo.New()
+		for i := 0; i < b.N; i++ {
+			n++
+			fi, err := os.Create(path.Join(dir, fmt.Sprint(n)))
+			if err != nil {
+				fmt.Println(err)
+				b.Fatal(err)
+			}
+
+			_, err = io.CopyN(fi, r, size)
+			if err != nil {
+				fi.Close()
+				fmt.Println(err)
+				b.Fatal(err)
+			}
+			fi.Close()
+		}
+	}
+
+	br := testing.Benchmark(f)
+	bs := humanize.IBytes(uint64(size))
+	fmt.Printf("DiskWrite (%s):\t%s\n", bs, br)
+
+	err = os.RemoveAll(benchdir)
+	if err != nil {
+		return err
+	}
 	return nil
 }
