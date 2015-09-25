@@ -38,16 +38,23 @@ func (bcfg *BenchCfg) String() string {
 	return fmt.Sprintf("Bench Config:\n\tBlocksize: %d\n", bcfg.Blocksize)
 }
 
+func getIpfsDir() string {
+	dir := os.Getenv("IPFS_PATH")
+	if dir != "" {
+		return dir
+	}
+
+	home := os.Getenv("HOME")
+	return path.Join(home, ".ipfs")
+}
 func main() {
 	bsize := kingpin.Flag("blocksize", "blocksize to test with").Default("262144").Int64()
 	kingpin.Parse()
 
-	home := os.Getenv("HOME")
-
-	ipfsdir := path.Join(home, ".ipfs")
+	ipfsdir := getIpfsDir()
 	r, err := fsrepo.Open(ipfsdir)
 	if err != nil {
-		fmt.Printf("Failed to open ipfs repo at: %s/.ipfs: %s\n", home, err)
+		fmt.Printf("Failed to open ipfs repo at: %s: %s\n", ipfsdir, err)
 		fmt.Println("Please ensure ipfs has been initialized and that no daemon is running")
 		return
 	}

@@ -2,13 +2,20 @@
 
 An ipfs repo benchmarking tool.
 
+## Installation
+repobench is go-getttable
+
+```
+$ go get github.com/whyrusleeping/repobench
+```
+
 ## Usage
 
 Make sure you have an ipfs repo initialized, no daemon running and a few hundred MB at least of free disk space.
 
 ```
-whyrusleeping@idril ~> repobench 
-whyrusleeping@idril ~> repobench --blocksize=524288
+$ repobench 
+$ repobench --blocksize=524288
 ```
 
 ### Options
@@ -21,7 +28,7 @@ Size to use for chunking input during benchmarks.
 ## Example
 
 ```
-whyrusleeping@idril ~> repobench 
+$ repobench 
 Bench Config:
 	Blocksize: 262144
 
